@@ -5,4 +5,11 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>Spark Project</name>
   <description>To learn spark</description>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.apache.spark</groupId>
+  		<artifactId>spark-core_2.10</artifactId>
+  		<version>1.6.0</version>
+  	</dependency>
+  </dependencies>
 </project>
