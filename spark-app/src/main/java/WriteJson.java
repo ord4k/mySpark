@@ -7,34 +7,28 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.codehaus.jackson.map.ObjectMapper;
 
+public class WriteJson implements FlatMapFunction<Iterator<Person>, String> {
 
-public class ParseJson implements FlatMapFunction<Iterator<String>, Person> {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 5555402033451929182L;
 
-	private static final long serialVersionUID = 1L;
-	// example 5.8
-
-	public Iterable<Person> call(Iterator<String> lines) throws Exception {
-		ArrayList<Person> people = new ArrayList<Person>();
+	public Iterable<String> call(Iterator<Person> people) throws Exception {
+		ArrayList<String> text = new ArrayList<String>();
 		ObjectMapper mapper = new ObjectMapper();
-		while (lines.hasNext()) {
-			String line = lines.next();
-			try {
-				people.add(mapper.readValue(line, Person.class));
-			} catch (Exception e) {
-				// skip records on failure
-			}
+		while (people.hasNext()) {
+			Person person = people.next();
+			text.add(mapper.writeValueAsString(person));
 		}
-		
-		return people;
-		
+		return text;
 	}
 
-	
 	public static void main(String[] args) {
 
 		// Create a Java Spark Context.
 		SparkConf conf = new SparkConf().setMaster("local[10]").setAppName("parseJson");
-		//String inputFile = "/usr/lib/spark/README.md";
+		// String inputFile = "/usr/lib/spark/README.md";
 
 		// Create a Java Spark Context.
 
@@ -42,11 +36,14 @@ public class ParseJson implements FlatMapFunction<Iterator<String>, Person> {
 		// Load our input data.
 		JavaRDD<String> input = sc.textFile("/home/ord4k/Documents/json.txt");
 		JavaRDD<Person> result = input.mapPartitions(new ParseJson());
-		System.out.println(result.collect());
 
-		
+		/*
+		 * Use some filter.... JavaRDD<Person> result = input.mapPartitions(new
+		 * ParseJson()).filter( new People());
+		 */
+
+		JavaRDD<String> formatted = result.mapPartitions(new WriteJson());
+		formatted.saveAsTextFile("/home/ord4k/Documents/resultJson");
 		sc.close();
-
 	}
-
 }
