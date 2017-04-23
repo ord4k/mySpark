@@ -1,4 +1,4 @@
-import java.time.Duration;
+
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -14,9 +14,11 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.DoubleFunction;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
+import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
 import org.apache.spark.streaming.twitter.TwitterUtils;
@@ -26,7 +28,11 @@ import twitter4j.Status;
 
 public class Twitter {
 
-	public static void main(String[] args) {
+
+	public static void main(String[] args) throws InterruptedException {
+	
+		
+		
 
 		if (!Logger.getRootLogger().getAllAppenders().hasMoreElements()) {
 			Logger.getRootLogger().setLevel(Level.WARN);
@@ -35,7 +41,7 @@ public class Twitter {
 		String consumerSecret = args[1];
 		String accessToken = args[2];
 		String accessTokenSecret = args[3];
-		String[] filters = Arrays.copyOfRange(args, 4, args.length);
+		//String[] filters = { "Warsaw" };
 
 		// Set the system properties so that Twitter4j library used by Twitter
 		// stream
@@ -49,8 +55,8 @@ public class Twitter {
 
 		SparkConf sparkConf = new SparkConf().setAppName("Twitter").setMaster(master);
 
-		JavaStreamingContext ssc = new JavaStreamingContext(sparkConf, Durations.seconds(2));
-		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(ssc, filters);
+		JavaStreamingContext ssc = new JavaStreamingContext(sparkConf, Durations.seconds(5));
+		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(ssc);
 
 		JavaDStream<String> words = stream.flatMap(new FlatMapFunction<Status, String>() {
 
@@ -65,9 +71,18 @@ public class Twitter {
 			}
 		});
 
+		JavaPairDStream<String, Integer> hashTagCount = hashTags.mapToPair(new PairFunction<String, String, Integer>() {
+			public Tuple2<String, Integer> call(String s) {
+				// leave out the # character
+				return new Tuple2<String, Integer>(s.substring(1), 1);
+			}
+		});
 
-		/*Read in the word-sentiment (ref https://github.com/apache/bahir/blob/master/streaming-twitter/examples/data/AFINN-111.txt
-		list and create a static RDD from it*/
+		/*
+		 * Read in the word-sentiment (ref
+		 * https://github.com/apache/bahir/blob/master/streaming-twitter/
+		 * examples/data/AFINN-111.txt list and create a static RDD from it
+		 */
 		String wordsValue = "/home/ord4k/Documents/stream.txt";
 		final JavaPairRDD<String, Double> wordSentiments = ssc.sparkContext().textFile(wordsValue)
 				.mapToPair(new PairFunction<String, String, Double>() {
@@ -76,7 +91,27 @@ public class Twitter {
 						return new Tuple2<String, Double>(columns[0], Double.parseDouble(columns[1]));
 					}
 				});
-		System.out.println(wordSentiments.collect());
+		
+		// hashTags.dstream().saveAsTextFiles("file:///home/ord4k/Documents/sparkResult/stream2.txt","txt");
+		hashTags.print();
+		
+		//This needs to be checked
+		/* JavaDStream<Long> requestCountRBW = hashTags.map(new Function<String, Long>() {
+		        public Long call(String entry) {
+		          return 1L;
+		        }}).reduceByWindow(new Function2<Long, Long, Long>() {
+		            public Long call(Long v1, Long v2) {
+		              return v1+v2;
+		            }}, new Function2<Long, Long, Long>() {
+		            public Long call(Long v1, Long v2) {
+		              return v1-v2;
+		            }}, Durations.seconds(120), Durations.seconds(120));
+		requestCountRBW.print();*/
+		
+		
+		ssc.start();
+
+		ssc.awaitTermination();
 
 	}
 
