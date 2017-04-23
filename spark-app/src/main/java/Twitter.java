@@ -66,9 +66,10 @@ public class Twitter {
 		});
 
 
-		// Read in the word-sentiment list and create a static RDD from it
-		String twitterStreamResult = "/home/ord4k/Documents/stream.txt";
-		final JavaPairRDD<String, Double> wordSentiments = ssc.sparkContext().textFile(twitterStreamResult)
+		/*Read in the word-sentiment (ref https://github.com/apache/bahir/blob/master/streaming-twitter/examples/data/AFINN-111.txt
+		list and create a static RDD from it*/
+		String wordsValue = "/home/ord4k/Documents/stream.txt";
+		final JavaPairRDD<String, Double> wordSentiments = ssc.sparkContext().textFile(wordsValue)
 				.mapToPair(new PairFunction<String, String, Double>() {
 					public Tuple2<String, Double> call(String line) {
 						String[] columns = line.split("\t");
