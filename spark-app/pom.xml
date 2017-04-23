@@ -11,6 +11,21 @@
   		<artifactId>spark-core_2.10</artifactId>
   		<version>1.6.0</version>
   	</dependency>
-  
+
+  	<dependency>
+  		<groupId>org.eclipse.jetty</groupId>
+  		<artifactId>jetty-client</artifactId>
+  		<version>8.1.17.v20150415</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.apache.spark</groupId>
+  		<artifactId>spark-streaming-twitter_2.10</artifactId>
+  		<version>1.6.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.apache.spark</groupId>
+  		<artifactId>spark-streaming_2.10</artifactId>
+  		<version>1.6.0</version>
+  	</dependency>
   </dependencies>
 </project>
