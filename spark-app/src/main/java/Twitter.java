@@ -1,6 +1,15 @@
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Serializable;
+import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -26,9 +35,15 @@ import org.apache.spark.streaming.twitter.TwitterUtils;
 import scala.Tuple2;
 import twitter4j.Status;
 
-public class Twitter {
+public class Twitter implements Serializable{
 
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@SuppressWarnings("deprecation")
 	public static void main(String[] args) throws InterruptedException {
 	
 		
@@ -55,7 +70,7 @@ public class Twitter {
 
 		SparkConf sparkConf = new SparkConf().setAppName("Twitter").setMaster(master);
 
-		JavaStreamingContext ssc = new JavaStreamingContext(sparkConf, Durations.seconds(5));
+		JavaStreamingContext ssc = new JavaStreamingContext(sparkConf, Durations.seconds(10));
 		JavaReceiverInputDStream<Status> stream = TwitterUtils.createStream(ssc);
 
 		JavaDStream<String> words = stream.flatMap(new FlatMapFunction<Status, String>() {
@@ -64,7 +79,7 @@ public class Twitter {
 				return Arrays.asList(s.getText().split(" "));
 			}
 		});
-
+		
 		JavaDStream<String> hashTags = words.filter(new Function<String, Boolean>() {
 			public Boolean call(String word) {
 				return word.startsWith("#");
@@ -92,8 +107,30 @@ public class Twitter {
 					}
 				});
 		
+		
 		// hashTags.dstream().saveAsTextFiles("file:///home/ord4k/Documents/sparkResult/stream2.txt","txt");
+		final List<String> out = new ArrayList();
+		hashTags.foreachRDD(new Function<JavaRDD<String>,Void>() {
+			public Void call(JavaRDD<String> rdd) throws FileNotFoundException, IOException {
+	            System.out.println("=============================");
+				System.out.println(rdd.collect().toString());
+				out.add(rdd.collect().toString());
+				
+				try (Writer writer = new BufferedWriter(new OutputStreamWriter(
+			              new FileOutputStream("/home/ord4k/Documents/filename.txt"),"utf-8"))) {
+			   writer.write(out.toString());
+			}
+				
+	            return null;
+			}
+			
+		});
+		
 		hashTags.print();
+		
+			
+			
+				
 		
 		//This needs to be checked
 		/* JavaDStream<Long> requestCountRBW = hashTags.map(new Function<String, Long>() {
@@ -110,8 +147,9 @@ public class Twitter {
 		
 		
 		ssc.start();
-
+	
 		ssc.awaitTermination();
+		System.out.println("end");
 
 	}
 
